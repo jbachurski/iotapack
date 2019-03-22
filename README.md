@@ -12,8 +12,8 @@ positional arguments:
 - `doc`: Problem statement file.
 
 optional arguments:
-  `-h, --help`: show this help message and exit
-  `-c CFG, --cfg CFG`: The .yml config file
-  `-a ADDSOL, --addsol ADDSOL`: Specify an additional solution (can be used multiple times)
-  `-ps PDFSRC, --pdfsrc PDFSRC`: Embed the pdf source (probably a .tex file)
-  `-z, --zip`: Flag that creates a zip file immediately after packing is done
+- `-h, --help`: show this help message and exit
+- `-c CFG, --cfg CFG`: The .yml config file
+- `-a ADDSOL, --addsol ADDSOL`: Specify an additional solution (can be used multiple times)
+- `-ps PDFSRC, --pdfsrc PDFSRC`: Embed the pdf source (probably a .tex file)
+- `-z, --zip`: Flag that creates a zip file immediately after packing is done

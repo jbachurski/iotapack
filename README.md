@@ -2,6 +2,10 @@
 
 `iotapack` is a simple tool for compiling SIO2 problem packages.
 
+*Note: **all** paths are assumed to be relative to the current working directory.*
+
+Requires Python 3.
+
 Use `iotapack --help` for to get help.
 
 positional arguments:

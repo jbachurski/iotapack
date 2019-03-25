@@ -92,7 +92,7 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, do_zip=Fals
     print(f"[!] done in: {round(finish - start, 3)}s")
         
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="iotapack")
     parser.add_argument("name", help="The name for the problem (the ID that is used in SIO2).")
     parser.add_argument("model", help="Relative directory to the model solution source.")
     parser.add_argument("lang", help="Either 'py' or 'cpp'. If 'cpp', then there must be a compiled version in the same directory.")

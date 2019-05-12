@@ -30,6 +30,13 @@ def convert_crlf_to_lf(file):
 def get_ext(filename):
     return os.path.splitext(filename)[1][1:]
 
+def wait_while(condition, timeout=5):
+    start = time.time()
+    while condition() and time.time() - start < timeout:
+        pass
+    if condition():
+        raise ValueError(f"Condition '{condition}' timed out")
+
 def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=None, do_zip=False):
     start = time.time()
     cleanup = []
@@ -60,8 +67,7 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=Non
     base = Path.cwd() / name
 
     shutil.rmtree(base, ignore_errors=True)
-    while os.path.exists(str(base)):
-        pass
+    wait_while(lambda: os.path.exists(str(base)))
 
     (base / "doc").mkdir(parents=True, exist_ok=True)
     copy_file(doc, base / "doc" / f"{name}zad.{force_doc_ext if force_doc_ext else get_ext(doc)}")
@@ -71,21 +77,25 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=Non
 
     (base / "in").mkdir(parents=True, exist_ok=True)
     (base / "out").mkdir(parents=True, exist_ok=True)
-    print("Looking for inputs", str(inputs / "*.in"))
-    for file in sorted(glob.glob(str(inputs / "*.in"))):
-        file = Path(file)
 
-        infile  = (base / "in"  / (f"{name}" + file.name))
-        outfile = (base / "out" / (f"{name}" + file.name[:-3] + ".out"))
+    if os.path.isdir(inputs):
+        print("Looking for inputs", str(inputs / "*.in"))
+        for file in sorted(glob.glob(str(inputs / "*.in"))):
+            file = Path(file)
 
-        copy_file(file, infile)
+            infile  = (base / "in"  / (f"{name}" + file.name))
+            outfile = (base / "out" / (f"{name}" + file.name[:-3] + ".out"))
 
-        print(f"$ {trimcwd(model_caller)} < {trimcwd(infile)} > {trimcwd(outfile)}")
-        os.system(f"'{model_caller}' < '{infile}' > '{outfile}'")
+            copy_file(file, infile)
 
-        if sys.platform == "win32":
-            convert_crlf_to_lf(infile)
-            convert_crlf_to_lf(outfile)
+            print(f"$ {trimcwd(model_caller)} < {trimcwd(infile)} > {trimcwd(outfile)}")
+            os.system(f"'{model_caller}' < '{infile}' > '{outfile}'")
+
+            if sys.platform == "win32":
+                convert_crlf_to_lf(infile)
+                convert_crlf_to_lf(outfile)
+    else:
+        copy_file(inputs, base / "prog" / f"{name}ingen.{get_ext(inputs)}")
 
     if cfg is not None:
         copy_file(Path(cfg), base / "config.yml")
@@ -105,7 +115,13 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=Non
 
     if do_zip:
         print("zip... ", end="", flush=True)
-        zipdir(f"{name}", zipfile.ZipFile(f"{name}.zip", "w", zipfile.ZIP_DEFLATED))
+        arc = zipfile.ZipFile(f"{name}.zip", "w", zipfile.ZIP_DEFLATED)
+        arc.writestr(zipfile.ZipInfo(f"{name}/doc/"), "")
+        arc.writestr(zipfile.ZipInfo(f"{name}/prog/"), "")
+        arc.writestr(zipfile.ZipInfo(f"{name}/in/"), "")
+        arc.writestr(zipfile.ZipInfo(f"{name}/out/"), "")
+        zipdir(f"{name}", arc)
+        arc.close()
         print("done")
 
     finish = time.time()
@@ -123,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument("name", help="The name for the problem (the ID that is used in SIO2).")
     parser.add_argument("model", help="Relative directory to the model solution source.")
     parser.add_argument("lang", help="Either 'py' or 'cpp'. If 'cpp', then there must be a compiled version in the same directory.")
-    parser.add_argument("inputs", help="The directory with .in input files.")
+    parser.add_argument("inputs", help="The directory with .in input files or a cpp/py program for generating them.")
     parser.add_argument("doc", help="Problem statement file.")
     parser.add_argument("-c", "--cfg", default=None, help="The .yml config file")
     parser.add_argument("-a", "--addsol", action="append", help="Specify an additional solution (can be used multiple times)")

@@ -115,13 +115,12 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=Non
 
     if do_zip:
         print("zip... ", end="", flush=True)
-        arc = zipfile.ZipFile(f"{name}.zip", "w", zipfile.ZIP_DEFLATED)
-        arc.writestr(zipfile.ZipInfo(f"{name}/doc/"), "")
-        arc.writestr(zipfile.ZipInfo(f"{name}/prog/"), "")
-        arc.writestr(zipfile.ZipInfo(f"{name}/in/"), "")
-        arc.writestr(zipfile.ZipInfo(f"{name}/out/"), "")
-        zipdir(f"{name}", arc)
-        arc.close()
+        with zipfile.ZipFile(f"{name}.zip", "w", zipfile.ZIP_DEFLATED) as arc:
+            arc.writestr(zipfile.ZipInfo(f"{name}/doc/"), "")
+            arc.writestr(zipfile.ZipInfo(f"{name}/prog/"), "")
+            arc.writestr(zipfile.ZipInfo(f"{name}/in/"), "")
+            arc.writestr(zipfile.ZipInfo(f"{name}/out/"), "")
+            zipdir(f"{name}", arc)
         print("done")
 
     finish = time.time()

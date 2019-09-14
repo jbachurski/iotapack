@@ -37,7 +37,7 @@ def wait_while(condition, timeout=5):
     if condition():
         raise ValueError(f"Condition '{condition}' timed out")
 
-def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=None, do_zip=False):
+def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, checker=None, do_zip=False, fullcleanup=False):
     start = time.time()
     cleanup = []
 
@@ -114,7 +114,7 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=Non
         copy_file(checker, base / "prog" / f"{name}chk.{get_ext(str(checker))}")
 
     if do_zip:
-        print("zip... ", end="", flush=True)
+        print("Zipping... ", end="", flush=True)
         with zipfile.ZipFile(f"{name}.zip", "w", zipfile.ZIP_DEFLATED) as arc:
             arc.writestr(zipfile.ZipInfo(f"{name}/doc/"), "")
             arc.writestr(zipfile.ZipInfo(f"{name}/prog/"), "")
@@ -130,6 +130,10 @@ def main(name, model, lang, inputs, doc, cfg, add_sol, pdf_src=None, checker=Non
         for file in cleanup:
             print(f"## {file}")
             os.remove(file)
+    
+    if fullcleanup:
+        print("Cleaning up build directory...")
+        shutil.rmtree(base, ignore_errors=True)
 
     print(f"[!] done in: {round(finish - start, 3)}s")
 
@@ -142,9 +146,10 @@ if __name__ == "__main__":
     parser.add_argument("doc", help="Problem statement file.")
     parser.add_argument("-c", "--cfg", default=None, help="The .yml config file")
     parser.add_argument("-a", "--addsol", action="append", help="Specify an additional solution (can be used multiple times)")
-    parser.add_argument("-ps", "--pdfsrc", default=None, help="Embed the text source (probably a .tex file)")
+    parser.add_argument("-s", "--pdfsrc", default=None, help="Embed the text source (probably a .tex file)")
     parser.add_argument("-k", "--checker", default=None, help="Checker program, for checking the correctness of results")
     parser.add_argument("-z", "--zip", action="store_true", help="Flag that creates a zip file immediately after packing is done")
+    parser.add_argument("-f", "--fullcleanup", action="store_true", help="Remove the package directory after building (useful when zipping)")
 
     args = parser.parse_args()
-    main(args.name, args.model, args.lang, args.inputs, args.doc, args.cfg, args.addsol, args.pdfsrc, args.checker, args.zip)
+    main(args.name, args.model, args.lang, args.inputs, args.doc, args.cfg, args.addsol, args.pdfsrc, args.checker, args.zip, args.fullcleanup)

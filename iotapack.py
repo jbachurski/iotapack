@@ -37,7 +37,7 @@ def wait_while(condition, timeout=5):
     if condition():
         raise ValueError(f"Condition '{condition}' timed out")
 
-def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, checker=None, do_zip=False, fullcleanup=False):
+def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, checker=None, outputs=False, do_zip=False, fullcleanup=False):
     start = time.time()
     cleanup = []
 
@@ -84,16 +84,16 @@ def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, c
             file = Path(file)
 
             infile  = (base / "in"  / (f"{name}" + file.name))
-            outfile = (base / "out" / (f"{name}" + file.name[:-3] + ".out"))
-
             copy_file(file, infile)
 
-            print(f"$ {trimcwd(model_caller)} < {trimcwd(infile)} > {trimcwd(outfile)}")
-            os.system(f"'{model_caller}' < '{infile}' > '{outfile}'")
+            if outputs:
+                outfile = (base / "out" / (f"{name}" + file.name[:-3] + ".out"))
+                print(f"$ {trimcwd(model_caller)} < {trimcwd(infile)} > {trimcwd(outfile)}")
+                os.system(f"'{model_caller}' < '{infile}' > '{outfile}'")
 
-            if sys.platform == "win32":
-                convert_crlf_to_lf(infile)
-                convert_crlf_to_lf(outfile)
+                if sys.platform == "win32":
+                    convert_crlf_to_lf(infile)
+                    convert_crlf_to_lf(outfile)
     else:
         copy_file(inputs, base / "prog" / f"{name}ingen.{get_ext(inputs)}")
 
@@ -141,15 +141,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="iotapack")
     parser.add_argument("name", help="The name for the problem (the ID that is used in SIO2).")
     parser.add_argument("model", help="Relative directory to the model solution source.")
-    parser.add_argument("lang", help="Either 'py' or 'cpp'. If 'cpp', then there must be a compiled version in the same directory.")
+    parser.add_argument("lang", help="Either 'py' or 'cpp'. If 'cpp', then there must be a compiled version in the same directory if outputs are generated.")
     parser.add_argument("inputs", help="The directory with .in input files or a cpp/py program for generating them.")
     parser.add_argument("doc", help="Problem statement file.")
     parser.add_argument("-c", "--cfg", default=None, help="The .yml config file")
     parser.add_argument("-a", "--addsol", action="append", help="Specify an additional solution (can be used multiple times)")
     parser.add_argument("-s", "--pdfsrc", default=None, help="Embed the text source (probably a .tex file)")
     parser.add_argument("-k", "--checker", default=None, help="Checker program, for checking the correctness of results")
+    parser.add_argument("-o", "--outputs", action="store_true", help="Generate the outputs and embed them in the problem package.")
     parser.add_argument("-z", "--zip", action="store_true", help="Flag that creates a zip file immediately after packing is done")
     parser.add_argument("-f", "--fullcleanup", action="store_true", help="Remove the package directory after building (useful when zipping)")
 
     args = parser.parse_args()
-    main(args.name, args.model, args.lang, args.inputs, args.doc, args.cfg, args.addsol, args.pdfsrc, args.checker, args.zip, args.fullcleanup)
+    main(args.name, args.model, args.lang, args.inputs, args.doc, args.cfg, args.addsol, args.pdfsrc, args.checker, args.outputs, args.zip, args.fullcleanup)

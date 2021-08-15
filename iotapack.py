@@ -6,6 +6,7 @@ import glob
 import zipfile
 import shutil
 import traceback
+import subprocess
 from pathlib import Path
 
 def trimcwd(p):
@@ -37,7 +38,7 @@ def wait_while(condition, timeout=5):
     if condition():
         raise ValueError(f"Condition '{condition}' timed out")
 
-def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, checker=None, outputs=False, do_zip=False, fullcleanup=False):
+def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, checker=None, inver=None, nopref=False, outputs=False, do_zip=False, fullcleanup=False):
     start = time.time()
     cleanup = []
 
@@ -83,11 +84,13 @@ def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, c
         for file in sorted(glob.glob(str(inputs / "*.in"))):
             file = Path(file)
 
-            infile  = (base / "in"  / (f"{name}" + file.name))
+            assert file.name.endswith(".in")
+            casename = file.name[:-3] if nopref else f"{name}" + file.name[:-3]
+            infile  = (base / "in"  / (casename + ".in"))
             copy_file(file, infile)
 
             if outputs:
-                outfile = (base / "out" / (f"{name}" + file.name[:-3] + ".out"))
+                outfile = (base / "out" / (casename + ".out"))
                 print(f"$ {trimcwd(model_caller)} < {trimcwd(infile)} > {trimcwd(outfile)}")
                 os.system(f"'{model_caller}' < '{infile}' > '{outfile}'")
 
@@ -96,6 +99,10 @@ def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, c
                     convert_crlf_to_lf(outfile)
     else:
         copy_file(inputs, base / "prog" / f"{name}ingen.{get_ext(inputs)}")
+
+    if inver is not None:
+        inver = Path.cwd() / Path(inver)
+        copy_file(inver, base / "prog" / (f"{name}inwer." + get_ext(str(inver))))
 
     if cfg is not None:
         copy_file(Path(cfg), base / "config.yml")
@@ -130,7 +137,7 @@ def main(name, model, lang, inputs, doc, cfg=None, add_sol=None, pdf_src=None, c
         for file in cleanup:
             print(f"## {file}")
             os.remove(file)
-    
+
     if fullcleanup:
         print("Cleaning up build directory...")
         shutil.rmtree(base, ignore_errors=True)
@@ -148,9 +155,11 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--addsol", action="append", help="Specify an additional solution (can be used multiple times)")
     parser.add_argument("-s", "--pdfsrc", default=None, help="Embed the text source (probably a .tex file)")
     parser.add_argument("-k", "--checker", default=None, help="Checker program, for checking the correctness of results")
-    parser.add_argument("-o", "--outputs", action="store_true", help="Generate the outputs and embed them in the problem package.")
+    parser.add_argument("-i", "--inver", default=None, help="Input verifier program")
+    parser.add_argument("-y", "--nopref", action="store_true", help="Do not prepend the name of test cases with test ID (which is done by default)")
+    parser.add_argument("-o", "--outputs", action="store_true", help="Generate the outputs and embed them in the problem package")
     parser.add_argument("-z", "--zip", action="store_true", help="Flag that creates a zip file immediately after packing is done")
     parser.add_argument("-f", "--fullcleanup", action="store_true", help="Remove the package directory after building (useful when zipping)")
 
     args = parser.parse_args()
-    main(args.name, args.model, args.lang, args.inputs, args.doc, args.cfg, args.addsol, args.pdfsrc, args.checker, args.outputs, args.zip, args.fullcleanup)
+    main(args.name, args.model, args.lang, args.inputs, args.doc, args.cfg, args.addsol, args.pdfsrc, args.checker, args.inver, args.nopref, args.outputs, args.zip, args.fullcleanup)
